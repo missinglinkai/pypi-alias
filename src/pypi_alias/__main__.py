@@ -7,30 +7,35 @@ import subprocess
 import sys
 import tempfile
 
+def safe_decode(str_or_bytes):
+    if hasattr(str_or_bytes, 'decode'):
+        return str_or_bytes.decode()
+
+    return str_or_bytes
 
 def main():
-    name = subprocess.check_output(['python', 'setup.py', '--name']).strip()
+    name = safe_decode(subprocess.check_output(['python', 'setup.py', '--name'])).strip()
     url = "https://pypi.python.org/pypi/%s/" % name
-    description = subprocess.check_output(['python', 'setup.py', '--description']).strip()
+    description = safe_decode(subprocess.check_output(['python', 'setup.py', '--description'])).strip()
     assert 'python' not in name
     if len(sys.argv) == 1:
         print("Usage: %s alias [setup.py arguments]" % sys.argv[0], file=sys.stderr)
         sys.exit(1)
     alias = sys.argv[1]
-    author = subprocess.check_output(['python', 'setup.py', '--author']).strip()
-    author_email = subprocess.check_output(['python', 'setup.py', '--author-email']).strip()
-    maintainer = subprocess.check_output(['python', 'setup.py', '--maintainer']).strip()
-    maintainer_email = subprocess.check_output(['python', 'setup.py', '--maintainer-email']).strip()
+    author = safe_decode(subprocess.check_output(['python', 'setup.py', '--author'])).strip()
+    author_email = safe_decode(subprocess.check_output(['python', 'setup.py', '--author-email'])).strip()
+    maintainer = safe_decode(subprocess.check_output(['python', 'setup.py', '--maintainer'])).strip()
+    maintainer_email = safe_decode(subprocess.check_output(['python', 'setup.py', '--maintainer-email'])).strip()
 
     try:
         path = tempfile.mkdtemp()
         os.chdir(path)
-        with open(os.path.join(path, 'setup.cfg'), 'wb') as fh:
-            fh.write(b"""[bdist_wheel]
+        with open(os.path.join(path, 'setup.cfg'), 'w') as fh:
+            fh.write("""[bdist_wheel]
 universal = 1
 """)
-        with open(os.path.join(path, 'setup.py'), 'wb') as fh:
-            fh.write(b"""# encoding: utf8
+        with open(os.path.join(path, 'setup.py'), 'w') as fh:
+            fh.write("""# encoding: utf8
 
 from setuptools import setup
 
@@ -52,7 +57,11 @@ setup(
 )
 """ % locals())
 
-        subprocess.call(['python', 'setup.py'] + sys.argv[2:])
+        if sys.argv[2] == "twine":
+           subprocess.call(['python', 'setup.py', 'bdist_wheel'])
+           subprocess.call(sys.argv[2:] + [alias + '*'])
+        else:
+           subprocess.call(['python', 'setup.py'] + sys.argv[2:])
     finally:
         shutil.rmtree(path)
 
