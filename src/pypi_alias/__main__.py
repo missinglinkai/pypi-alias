@@ -59,7 +59,7 @@ setup(
 
         if sys.argv[2] == "twine":
            subprocess.call(['python', 'setup.py', 'bdist_wheel'])
-           subprocess.call(sys.argv[2:] + [alias + '*'])
+           subprocess.call(sys.argv[2:] + [os.path.join('dist', alias + '*.whl')])
         else:
            subprocess.call(['python', 'setup.py'] + sys.argv[2:])
     finally:
